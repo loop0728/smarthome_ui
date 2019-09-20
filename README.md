@@ -1,4 +1,4 @@
-# zkgui_sample
+# smarthome_ui
 A gui sample which set up with Flythings IDE.
 
 # flythings的使用参考：
