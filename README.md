@@ -31,6 +31,13 @@ A gui sample which set up with Flythings IDE.
 	
 	将RunEnv里面的内容放置对应的目录即可。
 
+5、切换AMIC & DMIC
+
+	修改 arch/arm/boot/dts/infinity2m-ssc011a-s01a-display.dtsi
+	digmic-padmux = <1>;  // AMIC
+	digmic-padmux = <2>;    // DMIC
+
+
 注：1024*600，跑800*480的程序
 
 	1、需要将TP改成480*480
