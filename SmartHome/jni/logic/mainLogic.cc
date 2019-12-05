@@ -37,28 +37,20 @@
 #include "os/SystemProperties.h"
 //#include "os/UpgradeMonitor.h"
 #include "media/ZKMediaPlayer.h"
+#include "base_types.h"
 
 extern "C"{
-
-typedef struct {
-    char szWord[64];
-    int index;
-} WordInfo_t;
-
 typedef enum {
-	START_PLAY_MUSIC_E = 2,
-	STOP_PLAY_MUSIC_E = 3,
-	START_PLAY_MUSIC_C = 18,
-	STOP_PLAY_MUSIC_C =19,
+	START_PLAY_MUSIC = 0,
+	STOP_PLAY_MUSIC = 1,
 	ALL_APP_CMD
 } AppCmd_e;
 
-typedef void* (*VoiceAnalyzeCallback)(char*, int);
+typedef void* (*VoiceAnalyzeCallback)(int);
 
-int SSTAR_VoiceDetectInit();
-int SSTAR_VoiceDetectDeinit();
-int SSTAR_VoiceDetectGetWordList(WordInfo_t *pWordList, int cnt);
-int SSTAR_VoiceDetectStart(VoiceAnalyzeCallback pfnCallback);
+HANDLE SSTAR_VoiceDetectInit();
+int SSTAR_VoiceDetectDeinit(HANDLE hDSpotter);
+int SSTAR_VoiceDetectStart(HANDLE hDSpotter, VoiceAnalyzeCallback pfnCallback);
 void SSTAR_VoiceDetectStop();
 
 int SSTAR_StartPlayAudioFile(const char *WavAudioFile, int aoVolume);
@@ -74,6 +66,8 @@ static ZKMediaPlayer *sPlayer = new ZKMediaPlayer(ZKMediaPlayer::E_MEDIA_TYPE_AU
 //static ZKMediaPlayer *sPlayer = NULL;
 static bool sIsPlayOK = false;
 static bool bPause = false;
+
+static HANDLE g_hDSpotter = NULL;
 
 class PlayerMessageListener : public ZKMediaPlayer::IPlayerMessageListener {
 public:
@@ -115,7 +109,6 @@ static S_ACTIVITY_TIMEER REGISTER_ACTIVITY_TIMER_TAB[] = {
 };
 
 static int targetPos,curPos;
-static WordInfo_t sWordInfoList[WORD_COUNT];
 static bool sIsSeled[WORD_COUNT];
 
 static void EnterToPlayerPage()
@@ -127,28 +120,21 @@ static void EnterToPlayerPage()
 	mWindow1Ptr->setPosition(layout);
 }
 
-static void* onVoiceAnalyzeCallback(char *msg, int ext) {
-	LOGD("msg: %s, ext %d\n", msg, ext);
-	for (int i = 0; i < WORD_COUNT; ++i) {
-		if (!memcmp(msg, sWordInfoList[i].szWord, strlen(sWordInfoList[i].szWord)))
-		{
-			// if index equal to play music or stop music, do start playing or stop playing.
-			if (i == START_PLAY_MUSIC_E || i == START_PLAY_MUSIC_C)
-			{
-				EnterToPlayerPage();
-				SSTAR_StartPlayAudioFile("/customer/res/8K_16bit_MONO.wav", 2);
-				printf("start playing music\n"); // do start playing music
-				mButtonPlayPtr->setSelected(1);
-			}
-			else if (i == STOP_PLAY_MUSIC_E || i == STOP_PLAY_MUSIC_C)
-			{
-				EnterToPlayerPage();
-				SSTAR_StopPlayAudioFile();
-				printf("stop playing music\n"); // do stop playing music
-				mButtonPlayPtr->setSelected(0);
-			}
-			break;
-		}
+static void* onVoiceAnalyzeCallback(int commandID) {
+	LOGD("CommandID: %d\n", commandID);
+	if (commandID == START_PLAY_MUSIC)
+	{
+		EnterToPlayerPage();
+		SSTAR_StartPlayAudioFile("/customer/res/8K_16bit_MONO.wav", 2);
+		printf("start playing music\n"); // do start playing music
+		mButtonPlayPtr->setSelected(1);
+	}
+	else if (commandID == STOP_PLAY_MUSIC)
+	{
+		EnterToPlayerPage();
+		SSTAR_StopPlayAudioFile();
+		printf("stop playing music\n"); // do stop playing music
+		mButtonPlayPtr->setSelected(0);
 	}
 
 	return NULL;
@@ -216,12 +202,15 @@ static void onUI_init(){
 	printf("onUi init\n");
 
 	// init voice detect
-	memset(sWordInfoList, 0, sizeof(sWordInfoList));
 	memset(sIsSeled, 0, sizeof(sIsSeled));
-	SSTAR_VoiceDetectInit();
-	int ret = SSTAR_VoiceDetectGetWordList(sWordInfoList, WORD_COUNT);
-	LOGD("ret: %d\n", ret);
-	SSTAR_VoiceDetectStart(onVoiceAnalyzeCallback);
+	g_hDSpotter = SSTAR_VoiceDetectInit();
+	if (!g_hDSpotter)
+	{
+		printf("Voice detect init failed\n");
+		return;
+	}
+
+	SSTAR_VoiceDetectStart(g_hDSpotter, onVoiceAnalyzeCallback);
 
 	curPos = mWindow1Ptr->getPosition().mTop;
 	sPlayer->setPlayerMessageListener(&sPlayerMessageListener);
@@ -262,7 +251,7 @@ static void onUI_hide() {
 static void onUI_quit() {
 	printf("onUi quit\n");
 	SSTAR_VoiceDetectStop();
-	SSTAR_VoiceDetectDeinit();
+	SSTAR_VoiceDetectDeinit(g_hDSpotter);
 }
 
 /**
