@@ -108,7 +108,7 @@ static S_ACTIVITY_TIMEER REGISTER_ACTIVITY_TIMER_TAB[] = {
 	{1,  1000},
 };
 
-static int targetPos,curPos;
+static int targetPos = 0, curPos = 0;
 static bool sIsSeled[WORD_COUNT];
 
 static void EnterToPlayerPage()
@@ -212,7 +212,13 @@ static void onUI_init(){
 
 	SSTAR_VoiceDetectStart(g_hDSpotter, onVoiceAnalyzeCallback);
 
-	curPos = mWindow1Ptr->getPosition().mTop;
+	//curPos = mWindow1Ptr->getPosition().mTop;
+	curPos = 0;
+	LayoutPosition layout = mWindow1Ptr->getPosition();
+	layout.mTop = curPos;
+	mWindow1Ptr->setPosition(layout);
+
+	printf("curPos is %d\n", curPos);
 	sPlayer->setPlayerMessageListener(&sPlayerMessageListener);
 	sPlayer->setVolume(1.0, 1.0);
 	mSeekbar1Ptr->setProgress(0);
@@ -276,7 +282,7 @@ static bool onUI_Timer(int id){
 	case 0:
 
 		if(targetPos != curPos){
-			//LOGD("targetPos %d,curPos:%d",targetPos,curPos);
+			//LOGD("Timer0: targetPos %d,curPos:%d",targetPos,curPos);
 			if(sub(targetPos,curPos) > 5){
 				if(targetPos > curPos){
 					curPos += (targetPos-curPos)/2;
@@ -400,7 +406,7 @@ static void obtainListItemData_Listview1(ZKListView *pListView,ZKListView::ZKLis
 }
 
 static void onListItemClick_Listview1(ZKListView *pListView, int index, int id) {
-    //LOGD(" onListItemClick_ Listview1  !!!\n");
+    //LOGD(" onListItemClick_ Listview1, index is %d  !!!\n", index);
 	listSel = index;
 	targetPos = uipos[index];
 }
