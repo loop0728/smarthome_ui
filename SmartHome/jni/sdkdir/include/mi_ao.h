@@ -18,7 +18,7 @@
 #include "mi_ao_datatype.h"
 
 #define AO_MAJOR_VERSION 2
-#define AO_SUB_VERSION 9
+#define AO_SUB_VERSION 10
 #define MACRO_TO_STR(macro) #macro
 #define AO_VERSION_STR(major_version,sub_version) ({char *tmp = sub_version/100 ? \
                                     "mi_ao_version_" MACRO_TO_STR(major_version)"." MACRO_TO_STR(sub_version) : sub_version/10 ? \
@@ -86,6 +86,8 @@ MI_S32 MI_AO_DisableAdec(MI_AUDIO_DEV AoDevId, MI_AO_CHN AoChn);
 MI_S32 MI_AO_SetChnParam(MI_AUDIO_DEV AoDevId, MI_AO_CHN AoChn, MI_AO_ChnParam_t *pstChnParam);
 MI_S32 MI_AO_GetChnParam(MI_AUDIO_DEV AoDevId, MI_AO_CHN AoChn, MI_AO_ChnParam_t *pstChnParam);
 MI_S32 MI_AO_SetSrcGain(MI_AUDIO_DEV AoDevId, MI_S32 s32VolumeDb);
+MI_S32 MI_AO_InitDev(MI_AO_InitParam_t *pstInitParam);
+MI_S32 MI_AO_DeInitDev(void);
 #ifdef __cplusplus
 }
 #endif

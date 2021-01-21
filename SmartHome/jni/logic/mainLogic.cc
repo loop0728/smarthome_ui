@@ -31,18 +31,12 @@
 */
 
 #include "utils/TimeHelper.h"
-#include "net/NetManager.h"
-//#include "SocketClient.h"
-#include "manager/LanguageManager.h"
-#include "os/SystemProperties.h"
-//#include "os/UpgradeMonitor.h"
-#include "media/ZKMediaPlayer.h"
 #include "base_types.h"
 
 extern "C"{
 typedef enum {
-	START_PLAY_MUSIC = 0,
-	STOP_PLAY_MUSIC = 1,
+	START_PLAY_MUSIC = 5,
+	STOP_PLAY_MUSIC = 8,
 	ALL_APP_CMD
 } AppCmd_e;
 
@@ -62,41 +56,7 @@ void SSTAR_setVolume(int vol);
 #define sub(x,y) ((x>y)?(x-y):(y-x))
 
 const int dayTab[]={31,28,31,30,31,30,31,31,30,31,30,31,30};
-static ZKMediaPlayer *sPlayer = new ZKMediaPlayer(ZKMediaPlayer::E_MEDIA_TYPE_AUDIO);
-//static ZKMediaPlayer *sPlayer = NULL;
-static bool sIsPlayOK = false;
-static bool bPause = false;
-
 static HANDLE g_hDSpotter = NULL;
-
-class PlayerMessageListener : public ZKMediaPlayer::IPlayerMessageListener {
-public:
-    virtual void onPlayerMessage(ZKMediaPlayer *pMediaPlayer, int msg, void *pMsgData) {
-        switch (msg) {
-        case ZKMediaPlayer::E_MSGTYPE_ERROR_INVALID_FILEPATH:
-        case ZKMediaPlayer::E_MSGTYPE_ERROR_MEDIA_ERROR:
-            // 出错消息
-        	sIsPlayOK = false;
-        	mButtonPlayPtr->setSelected(false);
-            break;
-
-        case ZKMediaPlayer::E_MSGTYPE_PLAY_STARTED:
-            // 开始播放消息
-        	sIsPlayOK = true;
-        	mButtonPlayPtr->setSelected(true);
-            break;
-
-        case ZKMediaPlayer::E_MSGTYPE_PLAY_COMPLETED:
-            // 播放结束消息
-        	sIsPlayOK = false;
-        	mButtonPlayPtr->setSelected(false);
-
-            break;
-        }
-    }
-};
-
-static PlayerMessageListener sPlayerMessageListener;
 
 /**
  * 注册定时器
@@ -110,6 +70,15 @@ static S_ACTIVITY_TIMEER REGISTER_ACTIVITY_TIMER_TAB[] = {
 
 static int targetPos = 0, curPos = 0;
 static bool sIsSeled[WORD_COUNT];
+static int uipos[]={
+		0,
+		-480,
+		-960,
+		-1440,
+		-1920,
+		-2400,
+		-2880
+};
 
 static void EnterToPlayerPage()
 {
@@ -219,10 +188,7 @@ static void onUI_init(){
 	mWindow1Ptr->setPosition(layout);
 
 	printf("curPos is %d\n", curPos);
-	sPlayer->setPlayerMessageListener(&sPlayerMessageListener);
-	sPlayer->setVolume(1.0, 1.0);
 	mSeekbar1Ptr->setProgress(0);
-	sIsPlayOK = false;
 	initTimerDisp();
 }
 
@@ -304,13 +270,7 @@ static bool onUI_Timer(int id){
 		}
 		break;
 	case 1: // 1000s;
-		if(sIsPlayOK){
-			int id = sPlayer->getDuration();
-			int cur = sPlayer->getCurrentPosition();
-			mSeekbar1Ptr->setProgress(cur*100/id);
-		}else{
-			mSeekbar1Ptr->setProgress(0);
-		}
+		mSeekbar1Ptr->setProgress(0);
 		break;
 		default:
 			break;
@@ -318,18 +278,7 @@ static bool onUI_Timer(int id){
     return true;
 }
 
-static int lasty = 0,regpos = 0,startY = 0;
-static bool bMove = false;
 
-static int uipos[]={
-		0,
-		-480,
-		-960,
-		-1440,
-		-1920,
-		-2400,
-		-2880
-};
 /**
  * 有新的触摸事件时触发
  * 参数：ev
@@ -342,38 +291,10 @@ static int uipos[]={
 static bool onmainActivityTouchEvent(const MotionEvent &ev) {
     switch (ev.mActionStatus) {
 		case MotionEvent::E_ACTION_DOWN://触摸按下
-			//LOGD("时刻 = %ld 坐标  x = %d, y = %d", ev.mEventTime, ev.mX, ev.mY);
-//			lasty = ev.mY;
-//			regpos = curPos;
-//			startY = ev.mY;
 			break;
 		case MotionEvent::E_ACTION_MOVE://触摸滑动
-			//page move
-//			if(sub(ev.mY,lasty) > 10 ){
-//				targetPos = regpos - (lasty - ev.mY);
-//				regpos = targetPos;
-//				lasty = ev.mY;
-//				bMove = true;
-//			}
 			break;
 		case MotionEvent::E_ACTION_UP:  //触摸抬起
-			if(bMove){
-				curPos = mWindow1Ptr->getPosition().mTop;
-				int possize = sizeof(uipos)/sizeof(int);
-				for(int i = 0;i < possize - 1;i++){
-					LOGD("curPos:%d, uipos:%d",curPos,uipos[i]);
-					if((curPos < uipos[i]) && (curPos > uipos[i+1])){
-						if(sub(uipos[i],curPos) < 240){
-							targetPos =uipos[i];
-						}else{
-							targetPos =uipos[i+1];
-						}
-						break;
-					}
-				}
-				bMove =  false;
-			}
-			lasty = -1;
 			break;
 		default:
 			break;
@@ -542,19 +463,6 @@ static bool onButtonClick_Button9(ZKButton *pButton) {
 }
 static bool onButtonClick_ButtonPlay(ZKButton *pButton) {
     //LOGD(" ButtonClick ButtonPlay !!!\n");
-	if (!sIsPlayOK) {
-		sPlayer->play("/res/ui/test.mp3");
-	} else {
-		if (sPlayer->isPlaying()) {
-			sPlayer->pause();
-			pButton->setSelected(false);
-		} else {
-			sPlayer->resume();
-			pButton->setSelected(true);
-		}
-	}
-
-
     return false;
 }
 static const char* modeTab[]{

@@ -10,7 +10,7 @@
 
 static MI_DISP_PubAttr_t stDispPubAttr;
 
-static void server_on_exit() {
+void server_on_exit() {
     sstar_disp_Deinit(&stDispPubAttr);
 }
 

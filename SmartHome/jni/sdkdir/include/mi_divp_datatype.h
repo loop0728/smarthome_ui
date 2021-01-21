@@ -67,6 +67,20 @@ typedef struct MI_DIVP_ChnAttr_s
     MI_BOOL bVerMirror;//vertical mirror
 }MI_DIVP_ChnAttr_t;
 
+typedef struct MI_DIVP_DirectBuf_s
+{
+    MI_SYS_PixelFormat_e ePixelFormat; //YUV420SP or ARGB888 only
+    MI_U32 u32Width;
+    MI_U32 u32Height;
+    MI_U32 u32Stride[3];
+    MI_PHY phyAddr[3];
+}MI_DIVP_DirectBuf_t;
+
+typedef struct MI_DIVP_InitParam_s
+{
+    MI_U32 u32DevId;
+    MI_U8 *u8Data;
+} MI_DIVP_InitParam_t;
 
 #pragma pack(pop)
 #endif
